@@ -1,0 +1,12 @@
+name: reliefweb-data-dad-app-1
+title: reliefweb-data-dad-app-1
+username:
+account: reliefweb-disastersndiseases
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2528555
+bundleId: 3363955
+url: https://reliefweb-disastersndiseases.shinyapps.io/reliefweb-data-dad-app-1/
+when: 1594150227.44467
+asMultiple: FALSE
+asStatic: FALSE
