@@ -1,0 +1,962 @@
+---
+title: "Diseases monitoring"
+author: "ReliefWeb"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: pdf_document
+always_allow_html: true
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding) })
+---
+
+```{r change history, include=FALSE,echo=FALSE}
+#' Script Status: Stable
+#' updates done:
+#'                  1. Added indonesia floods report
+#'                  2. Added devtools,futile.logger,tryCatchLog libraries. These help  script to continue running in the event of errors
+#'                     in some part of script. We have added some options before sourcing the web scrapping script. We wrapped 
+#'                     web scrapping script source function within tryCatchLog.
+#
+#'                  
+
+```
+
+
+```{r setup, include=FALSE}
+library("rvest")
+library(tabulizer)
+library(dplyr)
+library(miniUI)
+library(tidyverse)
+library(pdftools)
+
+library(xlsx)
+library(condformat)
+library("readxl")
+library(tidyr)
+library(tidyverse)
+library(DT)
+library(reshape2)
+library("ggplot2")
+library(webshot)
+library(devtools)
+
+
+#install this library in case it is missing.
+if(!require(futile.logger)) install.packages("futile.logger"); library(futile.logger)
+
+#install this library in case it is missing.
+if(!require(tryCatchLog)) install.packages("tryCatchLog"); library(tryCatchLog)
+
+```
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+```
+
+### Green: Below 25% of the average of that month
+### Yellow: On the average of that month
+### Red: Above 25% of the average of that month
+
+
+
+
+\pagebreak
+### Dengue
+
+**Dengue cases in Nepal:**
+
+```{r sourcing data processing scripts, include=FALSE,echo=FALSE}
+#' Change directory below to point to data folder in your computer 
+#' 
+mypath<- "/home/ubuntu/Projects/data/"   #once this is set, please copy it over to Web_scrapping_and_data_cleaning.R script
+
+
+
+#In the event of an error in webscrapping, keeping running the script until the rest of code are done
+#'----------------------------------------------------------------------------------------------------
+
+options(keep.source = TRUE)        # source code file name and line number tracking
+#options("tryCatchLog.write.error.dump.file" = TRUE) # dump for post-mortem analysis
+
+flog.appender(appender.file(paste0(mypath,"webscrapping_errors.log")))  # to log into a file instead of console
+flog.threshold(ERROR)    # TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+#Run first the dependancies and web_scrapping_and_data_cleaning scripts
+source("dependancies.R")
+source("Web_scrapping_and_data_cleaning.R")
+
+
+options(scipen = 999) ### turn off scientific notation like 1e-09
+```
+
+
+```{r Dengue_Nepal, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE,echo=FALSE}
+save_data <- readRDS(file =paste0(mypath,"save_data_nepal_dengue.Rdata") )
+#extract last updated and new cases in the last two rows then display
+save_data[13,1]
+save_data[14,1]
+#remove the last two rows
+save_data<-save_data[1:12,]
+my_data<-save_data
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(5:8), visible = FALSE))
+  )
+) %>% 
+   formatStyle(columns = "2017",
+              valueColumns = "seventen_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+save_data$Month <-factor(save_data$Month, 
+                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(dplyr::select(save_data,-c(seventen_mean,eigthten_mean,nineten_mean,twente_mean)),id="Month")
+
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line() +
+theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Dengue cases split by Year") + labs(y= "Dengue Cases",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+```
+
+Source: Government of Nepal, Ministry of Health and Population, Department of Health Services, Epidemiology and Disease Control Division
+
+\pagebreak
+
+**Dengue cases in Sri Lanka:**
+
+```{r Dengue_Srilanka, fig.width=7, fig.height=3, dev='png',screenshot.force = TRUE,cache = TRUE, echo=FALSE}
+#readRDS data from processing files
+my_data <- readRDS(file = paste0(mypath,"sri_lanka_dengue.Rdata"))
+
+#extract last updated and new cases in the last two rows then display
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(12:22), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2010",
+              valueColumns = "ten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>% 
+  formatStyle(columns = "2011",
+              valueColumns = "eleven_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>% 
+  
+  formatStyle(columns = "2012",
+              valueColumns = "twelve_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  
+  formatStyle(columns = "2013",
+              valueColumns = "thirdten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2014",
+              valueColumns = "fourthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2015",
+              valueColumns = "fiveten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2016",
+              valueColumns = "sixten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2017",
+              valueColumns = "seventen_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) 
+
+
+#readRDS ggplot data from web scrapping and data cleaning file
+save_data <- readRDS(file = paste0(mypath,"sri_lanka_dengue_ggplot.Rdata"))
+
+save_data$Month <-factor(save_data$Month, 
+                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_data,id="Month")
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Dengue cases split by Year") + labs(y= "Dengue Cases",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+
+
+
+
+```
+
+Source: Epidemiology Unit of Ministry of Health of Sri Lanka
+
+\pagebreak
+
+
+**Dengue cases in Fiji:**
+
+```{r Dengue_Fiji, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE, echo=FALSE}
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"save_data_fiji_dengue.Rdata"))
+
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(4:6), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+#readRDS processed data for ggplot graph
+save_data<- readRDS(file = paste0(mypath,"save_data_fiji_dengue_ggplot.Rdata"))
+
+
+save_data$Month <-factor(save_data$Month, 
+                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_data,id="Month")
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Dengue cases split by Year") + labs(y= "Dengue Cases",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+
+
+```
+
+Source: Pacific Syndromic Surveillance System Weekly Bulletin - WHO
+
+\pagebreak
+
+
+**Dengue cases in French Polynesia:**
+
+```{r Dengue_French_Polynesia, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE, echo=FALSE}
+
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"french_polynesia_dengue.Rdata"))
+
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(4:6), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+#readRDS processed data for ggplot graph
+save_data<- readRDS(file =paste0(mypath,"french_polynesia_dengue_ggplot.Rdata"))
+
+save_data$Month <-factor(save_data$Month, 
+                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_data,id="Month")
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Dengue cases split by Year") + labs(y= "Dengue Cases",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+
+```
+Source: Pacific Syndromic Surveillance System Weekly Bulletin - WHO
+
+\pagebreak
+
+
+**Dengue cases in Marshall Islands:**
+
+```{r Dengue_Marshall_Islands, fig.width=7,fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE,echo=FALSE}
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"marshall_dengue.Rdata"))
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(4:6), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+#readRDS processed data for ggplot graph
+save_data<- readRDS(file = paste0(mypath,"marshall_dengue_ggplot.Rdata"))
+
+save_data$Month <-factor(save_data$Month, 
+                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_data,id="Month")
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Dengue cases split by Year") + labs(y= "Dengue Cases",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+
+
+```
+Source: Pacific Syndromic Surveillance System Weekly Bulletin - WHO
+\pagebreak
+
+
+**Dengue cases in Malaysia:**
+
+```{r Dengue_Malaysia, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE, echo=FALSE}
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"Malaysia_dengue.Rdata"))
+
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(6:10), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2016",
+              valueColumns = "sixten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2017",
+              valueColumns = "seventen_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+#readRDS processed data for ggplot graph
+save_data<- readRDS(file = paste0(mypath,"Malaysia_dengue_ggplot.Rdata"))
+
+save_data$Month <-factor(save_data$Month, 
+                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_data,id="Month")
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Dengue cases split by Year") + labs(y= "Dengue Cases",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+
+
+```
+Source: iDengue untuk komuniti - The Government of Malaysia
+\pagebreak
+
+### Polio
+
+**Polio cases in Afghanistan**
+
+```{r Polio_Afghanistan, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE, echo=FALSE}
+
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"afghanistan_polio.Rdata"))
+
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(7:12), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2015",
+              valueColumns = "fiveten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2016",
+              valueColumns = "sixten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2017",
+              valueColumns = "seventen_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+#readRDS processed data for ggplot graph
+save_data<- readRDS(file = paste0(mypath,"afghanistan_polio_ggplot.Rdata"))
+
+save_data$Month <-factor(save_data$Month, 
+                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_data,id="Month")
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Polio cases split by Year") + labs(y= "Polio Cases",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+
+```
+Source: Polio Global Eradication Initiative
+
+\pagebreak
+
+
+**Polio cases in Pakistan**
+
+```{r Polio_Pakistan, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE, echo=FALSE}
+
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"pakistan_polio.Rdata"))
+
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(7:12), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2015",
+              valueColumns = "fiveten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2016",
+              valueColumns = "sixten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2017",
+              valueColumns = "seventen_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+#readRDS processed data for ggplot graph
+save_data<- readRDS(file = paste0(mypath,"pakistan_polio_ggplot.Rdata"))
+
+save_data$Month <-factor(save_data$Month, 
+                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_data,id="Month")
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Polio cases split by Year") + labs(y= "Polio Cases",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+
+```
+Source: Polio Global Eradication Initiative
+\pagebreak
+
+### Measles
+
+**Measles cases in Bangladesh**
+
+```{r Measles_Bangladesh, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE, echo=FALSE}
+
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"Bangladesh_Measles.Rdata"))
+
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(4:6), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+#readRDS processed data for ggplot graph
+save_data<- readRDS(file = paste0(mypath,"Bangladesh_Measles_ggplot.Rdata"))
+
+save_data$Month <-factor(save_data$Month, 
+                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_data,id="Month")
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Measles cases split by Year") + labs(y= "Measles Cases",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+
+
+```
+Source: Epidemiological Highlights - WHO
+\pagebreak
+
+### Diarrhea
+
+**Diarrhea cases in Bangladesh**
+
+```{r Diarrhea_Bangladesh, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE, echo=FALSE}
+
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"Bangladesh_Diarrhea.Rdata"))
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(4:6), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+#readRDS processed data for ggplot graph
+save_data<- readRDS(file = paste0(mypath,"Bangladesh_Diarrhea_ggplot.Rdata"))
+
+save_data$Month <-factor(save_data$Month, 
+                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_data,id="Month")
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Diarrhea cases split by Year") + labs(y= "Diarrhea Cases",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+
+```
+Source: Epidemiological Highlights - WHO
+\pagebreak
+
+### Floods
+
+**Flood Situation Report- Indonesia**
+
+```{r Floods_Indonesia, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE, echo=FALSE}
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"Flood_Indonesia.Rdata"))
+
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(5:7), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2017",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+#readRDS processed data for ggplot graph
+save_data<- readRDS(file = paste0(mypath,"Flood_Indonesia_ggplot.Rdata"))
+
+
+save_data$Month <-factor(save_data$Month, 
+                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_data,id="Month")
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Flood affected people split by Year") + labs(y= "Flood Affected People",x="Month")+ 
+guides(colour=guide_legend(title="Year")) 
+
+
+
+```
+Source: AHA Centre
+\pagebreak
+
+
+### Drought
+
+**Drought Situation Report- Sri Lanka**
+
+Source: Disaster Management Centre for Safer Communities & Sustainable Development in Sri Lanka
+
+```{r Drought_SriLanka, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE,  echo=FALSE}
+
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"save_data_srilanka_drought.Rdata"))
+my_data$lastupdate[1]
+
+#remove the lastupdate column
+my_data$lastupdate<-NULL
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 52,
+                 columnDefs = list(list(targets = 3, visible = FALSE))
+  )
+)  %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+
+
+
+```
+
+
+\pagebreak
+
+
+### Floods
+
+**Floods Situation Report- Myanmar**
+
+Source:
+
+```{r floods_myanmar, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE,  echo=FALSE}
+
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"Myanmar_floods.Rdata"))
+
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(5:8), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2017",
+              valueColumns = "seventen_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+#readRDS processed data for ggplot graph
+save_my_data<- readRDS(file = paste0(mypath,"Myanmar_floods_ggplot.Rdata"))
+
+save_my_data$Month <-factor(save_my_data$Month, 
+                            levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_my_data,id="Month")
+
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Flood affected people split by Year") + labs(y= "Flood Affected People",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+```
+
+
+\pagebreak
+
+
+### Floods
+
+**Floods Situation Report- Philippines**
+
+Source:
+
+```{r floods_Philippines, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE,  echo=FALSE}
+
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"Philippines_floods.Rdata"))
+
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(5:8), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2017",
+              valueColumns = "seventen_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+#readRDS processed data for ggplot graph
+save_my_data<- readRDS(file = paste0(mypath,"Philippines_floods_ggplot.Rdata"))
+
+save_my_data$Month <-factor(save_my_data$Month, 
+                            levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_my_data,id="Month")
+
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Flood affected people split by Year") + labs(y= "Flood Affected People",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+```
+
+
+
+\pagebreak
+
+
+### Floods
+
+**Floods Situation Report- Thailand**
+
+Source:
+
+```{r floods_Thailand, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE,  echo=FALSE}
+
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"Thailand_floods.Rdata"))
+
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(5:8), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2017",
+              valueColumns = "seventen_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+#readRDS processed data for ggplot graph
+save_my_data<- readRDS(file = paste0(mypath,"Thailand_floods_ggplot.Rdata"))
+
+save_my_data$Month <-factor(save_my_data$Month, 
+                            levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_my_data,id="Month")
+
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Flood affected people split by Year") + labs(y= "Flood Affected People",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+```
+
+
+\pagebreak
+
+
+### Floods
+
+**Floods Situation Report- Afghanistan**
+
+Source:
+
+```{r floods_Afghanistan, fig.width=7, fig.height=3,dev='png',screenshot.force = TRUE,cache = TRUE,  echo=FALSE}
+
+#readRDS processed data from sourced file
+my_data<- readRDS(file = paste0(mypath,"afghanistan_floods.Rdata"))
+
+my_data[13,1]
+my_data[14,1]
+#remove the last two rows
+my_data<-my_data[1:12,]
+
+
+
+DT::datatable(
+  my_data,
+  rownames = FALSE,
+  options = list(pageLength = 15,
+                 columnDefs = list(list(targets = c(10:18), visible = FALSE))
+  )
+) %>% 
+  formatStyle(columns = "2012",
+              valueColumns = "twelve_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2013",
+              valueColumns = "thirten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2014",
+              valueColumns = "fourten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2015",
+              valueColumns = "fiveten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2016",
+              valueColumns = "sixten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2017",
+              valueColumns = "seventen_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2018",
+              valueColumns = "eigthten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2019",
+              valueColumns = "nineten_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00"))) %>%
+  formatStyle(columns = "2020",
+              valueColumns = "twente_mean",
+              backgroundColor = styleEqual(levels = c(0,1,2), values = c("#008000","#FFA500","#F00")))
+
+#readRDS processed data for ggplot graph
+save_data<- readRDS(file = paste0(mypath,"Afghanistan_floods_ggplot.Rdata"))
+
+save_data$Month <-factor(save_data$Month, 
+                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+meltdf <- reshape2::melt(save_data,id="Month")
+
+ggplot(meltdf,aes(x=Month,y=value,colour=variable,group=variable)) + geom_line()+
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),     axis.line = element_line(colour = "black"))+ 
+ggtitle("Monthly Distribution of Flood affected people split by Year") + labs(y= "Flood Affected People",x="Month")+ 
+guides(colour=guide_legend(title="Year"))
+
+```
+
+
+```{r temp files, echo=FALSE}
+unlink(paste0(normalizePath(tempdir()), "/", dir(tempdir())), recursive = TRUE)
+
+```
